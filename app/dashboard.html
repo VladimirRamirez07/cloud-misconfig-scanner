@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cloud Misconfiguration Scanner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #58a6ff;
+    }
+
+    header span {
+      font-size: 0.8rem;
+      background: #1f6feb33;
+      color: #58a6ff;
+      padding: 2px 10px;
+      border-radius: 20px;
+      border: 1px solid #1f6feb;
+    }
+
+    .container { padding: 30px 40px; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .summary-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .summary-card:hover { transform: translateY(-2px); }
+
+    .summary-card .number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .summary-card .label {
+      font-size: 0.85rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .critical .number { color: #f85149; }
+    .high .number     { color: #e3b341; }
+    .medium .number   { color: #58a6ff; }
+    .low .number      { color: #3fb950; }
+
+    .critical { border-color: #f8514933; }
+    .high     { border-color: #e3b34133; }
+    .medium   { border-color: #58a6ff33; }
+    .low      { border-color: #3fb95033; }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #1f6feb;
+      color: white;
+    }
+
+    .btn-primary:hover { background: #388bfd; }
+
+    .btn-secondary {
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+    }
+
+    .btn-secondary:hover { background: #30363d; }
+
+    .filter-group { display: flex; gap: 8px; }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #30363d;
+      background: #21262d;
+      color: #8b949e;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+
+    .filter-btn.active, .filter-btn:hover {
+      color: #e6edf3;
+      border-color: #58a6ff;
+      background: #1f6feb22;
+    }
+
+    .filter-btn.critical.active { border-color: #f85149; background: #f8514922; color: #f85149; }
+    .filter-btn.high.active     { border-color: #e3b341; background: #e3b34122; color: #e3b341; }
+    .filter-btn.medium.active   { border-color: #58a6ff; background: #58a6ff22; color: #58a6ff; }
+    .filter-btn.low.active      { border-color: #3fb950; background: #3fb95022; color: #3fb950; }
+
+    .findings-table {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-header h2 { font-size: 1rem; font-weight: 600; }
+    .total-badge {
+      background: #21262d;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #8b949e;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+      text-align: left;
+      padding: 12px 20px;
+      font-size: 0.75rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #0d1117;
+      border-bottom: 1px solid #30363d;
+    }
+
+    td {
+      padding: 14px 20px;
+      border-bottom: 1px solid #21262d;
+      font-size: 0.88rem;
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1c2128; }
+
+    .severity-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-CRITICAL { background: #f8514922; color: #f85149; border: 1px solid #f8514944; }
+    .badge-HIGH     { background: #e3b34122; color: #e3b341; border: 1px solid #e3b34144; }
+    .badge-MEDIUM   { background: #58a6ff22; color: #58a6ff; border: 1px solid #58a6ff44; }
+    .badge-LOW      { background: #3fb95022; color: #3fb950; border: 1px solid #3fb95044; }
+
+    .scan-type-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+    }
+
+    .recommendation {
+      font-size: 0.8rem;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+
+    .cis { font-size: 0.75rem; color: #58a6ff; margin-top: 4px; }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #8b949e;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #30363d;
+      border-top-color: #58a6ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty {
+      text-align: center;
+      padding: 60px;
+      color: #8b949e;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #8b949e;
+      margin-left: auto;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3fb950;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+  <h1>Cloud Misconfiguration Scanner</h1>
+  <span>v1.0.0</span>
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    API Running on :8080
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="summary-grid">
+    <div class="summary-card critical">
+      <div class="number" id="count-critical">—</div>
+      <div class="label">Critical</div>
+    </div>
+    <div class="summary-card high">
+      <div class="number" id="count-high">—</div>
+      <div class="label">High</div>
+    </div>
+    <div class="summary-card medium">
+      <div class="number" id="count-medium">—</div>
+      <div class="label">Medium</div>
+    </div>
+    <div class="summary-card low">
+      <div class="number" id="count-low">—</div>
+      <div class="label">Low</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-primary" onclick="runScan()">⚡ Run Full Scan</button>
+    <button class="btn btn-secondary" onclick="loadReport()">📋 Load Report</button>
+    <div class="filter-group">
+      <button class="filter-btn active" onclick="filterBy('ALL', this)">All</button>
+      <button class="filter-btn critical" onclick="filterBy('CRITICAL', this)">Critical</button>
+      <button class="filter-btn high" onclick="filterBy('HIGH', this)">High</button>
+      <button class="filter-btn medium" onclick="filterBy('MEDIUM', this)">Medium</button>
+      <button class="filter-btn low" onclick="filterBy('LOW', this)">Low</button>
+    </div>
+  </div>
+
+  <div class="findings-table">
+    <div class="table-header">
+      <h2>Findings</h2>
+      <span class="total-badge" id="total-badge">No scan yet</span>
+    </div>
+    <div id="table-container">
+      <div class="empty">
+        <div style="font-size:2rem;margin-bottom:12px">🔍</div>
+        Click <strong>Run Full Scan</strong> to start scanning
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://127.0.0.1:8080/api/v1';
+  let allFindings = [];
+  let activeFilter = 'ALL';
+
+  async function runScan() {
+    showLoading();
+    try {
+      const res = await fetch(`${API}/scan/all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      allFindings = data.findings;
+      updateSummary(data.summary);
+      renderTable(allFindings);
+    } catch (e) {
+      showError();
+    }
+  }
+
+  async function loadReport() {
+    showLoading();
+    try {
+      const res = await fetch(`${API}/report`);
+      const data = await res.json();
+      allFindings = data.results;
+      const summary = {
+        CRITICAL: allFindings.filter(f => f.severity === 'CRITICAL').length,
+        HIGH: allFindings.filter(f => f.severity === 'HIGH').length,
+        MEDIUM: allFindings.filter(f => f.severity === 'MEDIUM').length,
+        LOW: allFindings.filter(f => f.severity === 'LOW').length,
+      };
+      updateSummary(summary);
+      renderTable(allFindings);
+    } catch (e) {
+      showError();
+    }
+  }
+
+  function updateSummary(summary) {
+    document.getElementById('count-critical').textContent = summary.CRITICAL || 0;
+    document.getElementById('count-high').textContent = summary.HIGH || 0;
+    document.getElementById('count-medium').textContent = summary.MEDIUM || 0;
+    document.getElementById('count-low').textContent = summary.LOW || 0;
+  }
+
+  function filterBy(severity, btn) {
+    activeFilter = severity;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filtered = severity === 'ALL' ? allFindings : allFindings.filter(f => f.severity === severity);
+    renderTable(filtered);
+  }
+
+  function renderTable(findings) {
+    document.getElementById('total-badge').textContent = `${findings.length} findings`;
+    if (!findings.length) {
+      document.getElementById('table-container').innerHTML = `
+        <div class="empty">
+          <div style="font-size:2rem;margin-bottom:12px">✅</div>
+          No findings for this filter
+        </div>`;
+      return;
+    }
+
+    const rows = findings.map(f => `
+      <tr>
+        <td>
+          <span class="severity-badge badge-${f.severity}">${f.severity}</span>
+        </td>
+        <td><span class="scan-type-badge">${f.scan_type}</span></td>
+        <td><strong>${f.resource_id}</strong></td>
+        <td>
+          ${f.finding}
+          <div class="recommendation">💡 ${f.recommendation}</div>
+          <div class="cis">📋 ${f.cis_benchmark}</div>
+        </td>
+      </tr>
+    `).join('');
+
+    document.getElementById('table-container').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Severity</th>
+            <th>Type</th>
+            <th>Resource</th>
+            <th>Finding & Recommendation</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function showLoading() {
+    document.getElementById('table-container').innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        Scanning AWS resources...
+      </div>`;
+  }
+
+  function showError() {
+    document.getElementById('table-container').innerHTML = `
+      <div class="empty">
+        <div style="font-size:2rem;margin-bottom:12px">❌</div>
+        Could not connect to API. Make sure uvicorn is running on :8080
+      </div>`;
+  }
+</script>
+
+</body>
+</html>
