@@ -15,6 +15,7 @@
   <img src="https://img.shields.io/badge/Pydantic-Data_Validation-E92063?style=for-the-badge&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/Uvicorn-ASGI-499848?style=for-the-badge&logo=gunicorn&logoColor=white"/>
   <img src="https://img.shields.io/badge/CIS-Benchmarks-FF0000?style=for-the-badge&logoColor=white"/>
+  <img src="https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?style=for-the-badge&logo=githubactions&logoColor=white"/>
 </p>
 
 > AWS cloud security tool that automatically detects misconfigurations based on **CIS Benchmarks**. Inspired by industry tools like **Prowler** and **ScoutSuite**.
@@ -29,6 +30,8 @@
 | 🔒 Security Groups | SSH/RDP/DB ports open to the world (0.0.0.0/0) | CRITICAL / HIGH |
 | 👤 IAM | Unrotated keys +90 days, users without MFA | CRITICAL / HIGH |
 | 🔐 Encryption | EBS volumes, RDS instances and S3 without encryption at rest | CRITICAL / HIGH |
+| 📋 CloudTrail | Missing multi-region trails, disabled log validation, no KMS | HIGH |
+| 🌐 VPC Flow Logs | VPCs without network traffic monitoring enabled | HIGH |
 
 ---
 
@@ -38,16 +41,24 @@
 cloud-misconfig-scanner/
 ├── app/
 │   ├── scanners/
-│   │   ├── s3_scanner.py          # S3 public bucket detection
-│   │   ├── sg_scanner.py          # Security Group analysis
-│   │   ├── iam_scanner.py         # IAM key rotation & MFA checks
-│   │   └── encryption_scanner.py  # Encryption at rest validation
+│   │   ├── s3_scanner.py              # S3 public bucket detection
+│   │   ├── sg_scanner.py              # Security Group analysis
+│   │   ├── iam_scanner.py             # IAM key rotation & MFA checks
+│   │   ├── encryption_scanner.py      # Encryption at rest validation
+│   │   └── cloudtrail_scanner.py      # CloudTrail & VPC Flow Logs
 │   ├── api/
-│   │   └── routes.py              # FastAPI REST endpoints
+│   │   └── routes.py                  # FastAPI REST endpoints
 │   ├── database/
-│   │   ├── models.py              # SQLAlchemy models
-│   │   └── db.py                  # SQLite connection & session
-│   └── main.py                    # App entrypoint
+│   │   ├── models.py                  # SQLAlchemy models
+│   │   └── db.py                      # SQLite connection & session
+│   ├── dashboard.html                 # Security findings dashboard UI
+│   └── main.py                        # App entrypoint
+├── tests/
+│   └── test_scanners.py               # Pytest unit tests (16 tests)
+├── .github/
+│   └── workflows/
+│       └── ci.yml                     # GitHub Actions CI/CD pipeline
+├── conftest.py                        # Pytest configuration
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -85,7 +96,9 @@ uvicorn app.main:app --port 8080
 docker-compose up --build
 ```
 
-Once running, access the interactive API docs at: **http://localhost:8080/docs**
+Once running:
+- API docs: **http://localhost:8080/docs**
+- Dashboard: **http://localhost:8080/dashboard/dashboard.html**
 
 ---
 
@@ -97,6 +110,7 @@ Once running, access the interactive API docs at: **http://localhost:8080/docs**
 | `POST` | `/api/v1/scan/security-groups` | Scan Security Groups for open ports |
 | `POST` | `/api/v1/scan/iam` | Scan IAM users for key rotation & MFA |
 | `POST` | `/api/v1/scan/encryption` | Scan EBS, RDS & S3 for missing encryption |
+| `POST` | `/api/v1/scan/cloudtrail` | Scan CloudTrail & VPC Flow Logs |
 | `POST` | `/api/v1/scan/all` | Run full scan across all services |
 | `GET` | `/api/v1/report` | Retrieve historical scan report |
 
@@ -116,10 +130,10 @@ curl -X POST http://localhost:8080/api/v1/scan/all \
 
 ```json
 {
-  "total_findings": 10,
+  "total_findings": 14,
   "summary": {
     "CRITICAL": 5,
-    "HIGH": 5,
+    "HIGH": 9,
     "MEDIUM": 0,
     "LOW": 0
   },
@@ -149,8 +163,24 @@ curl -X POST http://localhost:8080/api/v1/scan/all \
 | CIS AWS 2.1.5 | Enable S3 Block Public Access |
 | CIS AWS 2.2.1 | Ensure EBS volumes are encrypted |
 | CIS AWS 2.3.1 | Ensure RDS instances are encrypted at rest |
+| CIS AWS 3.1 | Enable CloudTrail in all regions |
+| CIS AWS 3.2 | Enable CloudTrail log file validation |
+| CIS AWS 3.7 | Encrypt CloudTrail logs with KMS |
+| CIS AWS 3.9 | Enable VPC Flow Logs |
 | CIS AWS 5.2 | Do not allow SSH access from 0.0.0.0/0 |
 | CIS AWS 5.3 | Review unrestricted Security Group rules |
+
+---
+
+## ✅ CI/CD Pipeline
+
+Every push to `main` triggers the GitHub Actions pipeline:
+
+```
+✅ test   — runs 16 pytest unit tests
+✅ lint   — flake8 code quality check
+✅ docker — builds Docker image
+```
 
 ---
 
@@ -166,6 +196,8 @@ curl -X POST http://localhost:8080/api/v1/scan/all \
 | **Pydantic** | Data validation & serialization |
 | **Uvicorn** | ASGI server |
 | **Docker** | Containerization |
+| **Pytest** | Unit testing (16 tests) |
+| **GitHub Actions** | CI/CD automation |
 
 ---
 
