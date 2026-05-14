@@ -6,15 +6,18 @@ from app.scanners.s3_scanner import check_s3_buckets
 from app.scanners.sg_scanner import check_security_groups
 from app.scanners.iam_scanner import check_iam_keys
 from app.scanners.encryption_scanner import check_encryption
+from app.scanners.cloudtrail_scanner import check_cloudtrail
 from pydantic import BaseModel
 from typing import Optional
 
 router = APIRouter()
 
+
 class ScanRequest(BaseModel):
     aws_access_key: Optional[str] = None
     aws_secret_key: Optional[str] = None
     region: Optional[str] = "us-east-1"
+
 
 def save_findings(findings, db):
     for f in findings:
@@ -29,11 +32,13 @@ def save_findings(findings, db):
         db.add(record)
     db.commit()
 
+
 @router.post("/scan/s3")
 def scan_s3(request: ScanRequest, db: Session = Depends(get_db)):
     findings = check_s3_buckets(request.aws_access_key, request.aws_secret_key, request.region)
     save_findings(findings, db)
     return {"scan_type": "s3", "total_findings": len(findings), "findings": findings}
+
 
 @router.post("/scan/security-groups")
 def scan_security_groups(request: ScanRequest, db: Session = Depends(get_db)):
@@ -41,17 +46,27 @@ def scan_security_groups(request: ScanRequest, db: Session = Depends(get_db)):
     save_findings(findings, db)
     return {"scan_type": "security_group", "total_findings": len(findings), "findings": findings}
 
+
 @router.post("/scan/iam")
 def scan_iam(request: ScanRequest, db: Session = Depends(get_db)):
     findings = check_iam_keys(request.aws_access_key, request.aws_secret_key, request.region)
     save_findings(findings, db)
     return {"scan_type": "iam", "total_findings": len(findings), "findings": findings}
 
+
 @router.post("/scan/encryption")
 def scan_encryption(request: ScanRequest, db: Session = Depends(get_db)):
     findings = check_encryption(request.aws_access_key, request.aws_secret_key, request.region)
     save_findings(findings, db)
     return {"scan_type": "encryption", "total_findings": len(findings), "findings": findings}
+
+
+@router.post("/scan/cloudtrail")
+def scan_cloudtrail(request: ScanRequest, db: Session = Depends(get_db)):
+    findings = check_cloudtrail(request.aws_access_key, request.aws_secret_key, request.region)
+    save_findings(findings, db)
+    return {"scan_type": "cloudtrail", "total_findings": len(findings), "findings": findings}
+
 
 @router.post("/scan/all")
 def scan_all(request: ScanRequest, db: Session = Depends(get_db)):
@@ -60,6 +75,7 @@ def scan_all(request: ScanRequest, db: Session = Depends(get_db)):
     all_findings += check_security_groups(request.aws_access_key, request.aws_secret_key, request.region)
     all_findings += check_iam_keys(request.aws_access_key, request.aws_secret_key, request.region)
     all_findings += check_encryption(request.aws_access_key, request.aws_secret_key, request.region)
+    all_findings += check_cloudtrail(request.aws_access_key, request.aws_secret_key, request.region)
     save_findings(all_findings, db)
 
     summary = {
@@ -74,6 +90,7 @@ def scan_all(request: ScanRequest, db: Session = Depends(get_db)):
         "summary": summary,
         "findings": all_findings
     }
+
 
 @router.get("/report")
 def get_report(db: Session = Depends(get_db)):
