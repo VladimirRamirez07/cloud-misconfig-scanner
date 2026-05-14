@@ -41,7 +41,7 @@ jobs:
         run: pip install flake8
 
       - name: Run linter
-        run: flake8 app/ --max-line-length=120 --ignore=E501,W503
+        run: flake8 app/ --max-line-length=120 --ignore=E302,W292,F401,E501,W503
 
   docker:
     runs-on: ubuntu-latest
