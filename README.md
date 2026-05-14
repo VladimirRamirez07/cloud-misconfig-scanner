@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/SQLAlchemy-ORM-D71F00?style=for-the-badge&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/Pydantic-Data_Validation-E92063?style=for-the-badge&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/Uvicorn-ASGI-499848?style=for-the-badge&logo=gunicorn&logoColor=white"/>
-  <img src="https://img.shields.io/badge/CIS-Benchmarks-FF0000?style=for-the-badge&logo=security&logoColor=white"/>
+  <img src="https://img.shields.io/badge/CIS-Benchmarks-FF0000?style=for-the-badge&logoColor=white"/>
 </p>
 
 > AWS cloud security tool that automatically detects misconfigurations based on **CIS Benchmarks**. Inspired by industry tools like **Prowler** and **ScoutSuite**.
@@ -33,23 +33,27 @@
 ---
 
 ## 🏗️ Architecture
+
+```text
 cloud-misconfig-scanner/
 ├── app/
-│   ├── scanners/               # AWS detection modules
-│   │   ├── s3_scanner.py       # S3 public bucket detection
-│   │   ├── sg_scanner.py       # Security Group analysis
-│   │   ├── iam_scanner.py      # IAM key rotation & MFA checks
-│   │   └── encryption_scanner.py # Encryption at rest validation
+│   ├── scanners/
+│   │   ├── s3_scanner.py          # S3 public bucket detection
+│   │   ├── sg_scanner.py          # Security Group analysis
+│   │   ├── iam_scanner.py         # IAM key rotation & MFA checks
+│   │   └── encryption_scanner.py  # Encryption at rest validation
 │   ├── api/
-│   │   └── routes.py           # FastAPI REST endpoints
+│   │   └── routes.py              # FastAPI REST endpoints
 │   ├── database/
-│   │   ├── models.py           # SQLAlchemy models
-│   │   └── db.py               # SQLite connection & session
-│   └── main.py                 # App entrypoint
+│   │   ├── models.py              # SQLAlchemy models
+│   │   └── db.py                  # SQLite connection & session
+│   └── main.py                    # App entrypoint
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 └── .env.example
+```
+
 ---
 
 ## 🚀 Getting Started
